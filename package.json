@@ -1,0 +1,26 @@
+{
+  "name": "biz-mock",
+  "version": "0.0.1",
+  "description": "mock center",
+  "main": "mock.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yanyu0517/biz-mock.git"
+  },
+  "keywords": [
+    "mock"
+  ],
+  "author": "yanyu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yanyu0517/biz-mock/issues"
+  },
+  "homepage": "https://github.com/yanyu0517/biz-mock#readme",
+  "dependencies": {
+    "extend": "^3.0.0",
+    "mockjs": "^0.1.10"
+  }
+}
