@@ -5,6 +5,7 @@ require('colors');
 var MockJs = require('mockjs'),
     extend = require('extend'),
     fs = require('fs'),
+    fse = require('fs-extra'),
     path = require('path'),
     request = require('request'),
     director = require('director'),
@@ -46,7 +47,7 @@ function Mock() {
     this.thunkGetCustomData = thunkify(this._getCustomData);
 }
 
-Mock.prototype.config = function(options){
+Mock.prototype.config = function(options) {
     this.options = extend(true, defaultOptions, options || {});
     this._initRouter();
 }
@@ -61,6 +62,7 @@ Mock.prototype._initRouter = function() {
         for (var i = 0; i < suffix.length; i++) {
             var reg = '/(.*)' + suffix[i],
                 me = this;
+
             function callback(url) {
                 if (mockConfig) {
                     me._mockTo.call(me, url, this.req, this.res);
@@ -72,6 +74,25 @@ Mock.prototype._initRouter = function() {
         }
     }
 };
+
+Mock.prototype.initFolder = function() {
+    var src = path.join(__dirname, '../config');
+    console.log('copy ' + src + ' to ' + process.cwd())
+        // 复制目录
+    fse.copy(src, process.cwd() + '/config', function(err) {
+        if (err) {
+            console.error(err);
+        }
+    });
+    src = path.join(__dirname, '../mock');
+    console.log('copy ' + src + ' to ' + process.cwd() + '/mock');
+    // 复制目录
+    fse.copy(src, process.cwd() + '/mock', function(err) {
+        if (err) {
+            console.error(err);
+        }
+    });
+}
 
 Mock.prototype.dispatch = function(req, res) {
     return router.dispatch(req, res);
@@ -194,5 +215,6 @@ var mock = new Mock();
 
 module.exports = {
     config: mock.config,
-    dispatch: mock.dispatch
+    dispatch: mock.dispatch,
+    init: mock.initFolder
 };
