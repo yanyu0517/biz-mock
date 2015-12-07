@@ -15,9 +15,10 @@ var MockJs = require('mockjs'),
 
 var defaultOptions = {
     as: '.action',
-    mockConfig: '/config/mockConfig.json',
+    mockConfig: require(path.join(process.cwd(), '/config/mockConfig.json')),
     silent: false,
-    methods: ['post', 'get']
+    methods: ['post', 'get'],
+    port: 80
 };
 
 var logger = {
@@ -47,9 +48,10 @@ function Mock() {
     this.thunkGetCustomData = thunkify(this._getCustomData);
 }
 
-Mock.prototype.config = function(options) {
+Mock.prototype.start = function(options) {
     this.options = extend(true, defaultOptions, options || {});
     this._initRouter();
+    this.hasStart = true;
 }
 
 //init router
@@ -79,22 +81,17 @@ Mock.prototype.initFolder = function() {
     var src = path.join(__dirname, '../config');
     console.log('copy ' + src + ' to ' + process.cwd())
         // 复制目录
-    fse.copy(src, process.cwd() + '/config', function(err) {
-        if (err) {
-            console.error(err);
-        }
-    });
+    fse.copySync(src, process.cwd() + '/config');
     src = path.join(__dirname, '../mock');
     console.log('copy ' + src + ' to ' + process.cwd() + '/mock');
     // 复制目录
-    fse.copy(src, process.cwd() + '/mock', function(err) {
-        if (err) {
-            console.error(err);
-        }
-    });
+    fse.copySync(src, process.cwd() + '/mock');
 }
 
 Mock.prototype.dispatch = function(req, res) {
+    if (!this.hasStart) {
+        logger.info('You first have to call mock.start()'.red)
+    }
     return router.dispatch(req, res);
 };
 
@@ -109,20 +106,20 @@ Mock.prototype._mockTo = function(url, req, res) {
                     'Content-Type': 'application/json'
                 });
                 res.end(data);
-                me.options.logger.request(req, res);
+                logger.request(req, res);
                 break;
             } else if (!data && i === me.options.mockConfig.dataSource.length - 1) {
                 //最后一个仍然没有返回数据，那么则返回404
                 res.writeHead(404);
                 res.end('not found');
-                me.options.logger.info("Can't find any data source".red);
+                logger.info("Can't find any data source".red);
             }
         }
-        me.options.logger.info('Datasource is ' + me.options.mockConfig.dataSource[i].green);
+        logger.info('Datasource is ' + me.options.mockConfig.dataSource[i].green);
     }).catch(function(err) {
         res.writeHead(404);
         res.end(err.stack);
-        me.options.logger.request(req, res, err);
+        logger.request(req, res, err);
     });
 };
 
@@ -148,14 +145,17 @@ Mock.prototype._getMockData = function(type) {
 
 Mock.prototype._getJsonData = function(type, url, req, res, cb) {
     var pathStr = path.join(process.cwd(), this.options.mockConfig.json.path + url + (this.options.mockConfig.json.suffix || '.json'));
-    this.options.logger.info('Json data path is ' + pathStr.cyan);
+    logger.info('Json data path is ' + pathStr.cyan);
     if (fs.existsSync(pathStr)) {
+        var me = this;
         fs.readFile(pathStr, 'utf-8', function(err, data) {
             if (err) throw cb(err);
             var json = JSON.parse(data);
-            if (this.options.mockConfig) {
+            if (me.options.mockConfig.json.wrap) {
                 if (json.enable) {
                     cb(null, JSON.stringify(json[json.value]));
+                } else {
+                    cb(null);
                 }
             } else {
                 return cb(null, data);
@@ -163,13 +163,13 @@ Mock.prototype._getJsonData = function(type, url, req, res, cb) {
         });
     } else {
         cb(null);
-        this.options.logger.info("Can't find json data with the path '" + pathStr + "'");
+        logger.info("Can't find json data with the path '" + pathStr + "'");
     }
 };
 
 Mock.prototype._getTemplateData = function(type, url, req, res, cb) {
     var pathStr = path.join(process.cwd(), this.options.mockConfig.template.path + url + '.template');
-    this.options.logger.info('Template data path is ' + pathStr.cyan);
+    logger.info('Template data path is ' + pathStr.cyan);
     if (fs.existsSync(pathStr)) {
         fs.readFile(pathStr, 'utf-8', function(err, data) {
             var mockData = MockJs.mock(new Function('return ' + data)());
@@ -177,13 +177,13 @@ Mock.prototype._getTemplateData = function(type, url, req, res, cb) {
         });
     } else {
         cb(null);
-        this.options.logger.info("Can't find template data with the path '" + pathStr + "'");
+        logger.info("Can't find template data with the path '" + pathStr + "'");
     }
 };
 
 Mock.prototype._getCookieData = function(type, url, req, res, cb) {
     var configs = this.options.mockConfig.cookie,
-        port = this.options.port || configs.port,
+        port = this.options.port,
         options = {
             method: req.method || 'post',
             form: req.body || '',
@@ -195,7 +195,7 @@ Mock.prototype._getCookieData = function(type, url, req, res, cb) {
             rejectUnauthorized: !!configs.rejectUnauthorized,
             secureProtocol: configs.secureProtocol || ''
         };
-    this.options.logger.info('Dispatch to ' + options.url.cyan);
+    logger.info('Dispatch to ' + options.url.cyan);
     request(options, function(error, res, body) {
         cb(error, body);
     });
@@ -207,14 +207,10 @@ Mock.prototype._getCustomData = function(type, url, req, res, cb) {
             action = url + (this.options.as || '');
         mockSource.getData(action, req, res, cb);
     } catch (e) {
-        this.options.logger.info("Can't find mock source " + type);
+        logger.info("Can't find mock source " + type);
     }
 };
 
 var mock = new Mock();
 
-module.exports = {
-    config: mock.config,
-    dispatch: mock.dispatch,
-    init: mock.initFolder
-};
+module.exports = mock;
