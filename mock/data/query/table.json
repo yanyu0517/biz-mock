@@ -1,0 +1,8 @@
+{
+    "table": [
+        {"id": 100, "name": "A", "height": 182, "weight": 60.5, "age": 25, "email": "a@sogou.com"},
+        {"id": 200, "name": "B", "height": 173, "weight": 50.2, "age": 26, "email": "b@sogou.com"},
+        {"id": 300, "name": "C", "height": 170, "weight": 62.6, "age": 27, "email": "c@sogou.com"},
+        {"id": 400, "name": "D", "height": 165, "weight": 70.3, "age": 23, "email": "d@sogou.com"}
+    ]
+}

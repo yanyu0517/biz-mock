@@ -1,0 +1,47 @@
+{
+    "enabled": true,
+    "value": "tree",
+    "tree": [
+        {
+            "id": 100,
+            "text": "Dashbord",
+            "icon": false
+        },
+        {
+            "id": 200,
+            "text": "Consumption",
+            "icon": false,
+            "children": [
+                {"id": 210, "text": "PC"},
+                {"id": 220, "text": "Mobile"}
+            ],
+            "state": {"opened": true}
+        },
+        {
+            "id": 300,
+            "text": "Report",
+            "icon": false,
+            "children": [
+                {"id": 310, "text": "Daily"},
+                {"id": 320, "text": "Weekly"},
+                {"id": 330, "text": "Monthly"}
+            ]
+        },
+        {
+            "id": 400,
+            "text": "Settings",
+            "icon": false,
+            "children": [
+                {"id": 410, "text": "Profile"},
+                {"id": 420, "text": "Security"}
+            ]
+        }
+    ],
+    "error": {
+        "flag": "1",
+        "msg": [
+            "input error"
+        ],
+        "data": []
+    }
+}
