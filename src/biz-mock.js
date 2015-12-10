@@ -15,9 +15,9 @@ var MockJs = require('mockjs'),
 
 var mockConfig;
 try {
-    mockConfig = path.join(process.cwd(), '/config/mockConfig.json');
+    mockConfig = require(path.join(process.cwd(), '/config/mockConfig.json'));
 } catch(e){
-    
+
 }
 
 var defaultOptions = {

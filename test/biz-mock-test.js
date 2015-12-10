@@ -1,5 +1,6 @@
 var path = require('path'),
     fs = require('fs'),
+    fse = require('fs-extra'),
     vows = require('vows'),
     assert = require('assert'),
     mock = require('../src/biz-mock'),
@@ -7,32 +8,35 @@ var path = require('path'),
     _ = require('underscore'),
     httpServer = require('http-server');
 
-var root = path.join(__dirname);
+var root = path.join(__dirname),
+    configPath = path.join(__dirname, 'config'),
+    mockPath = path.join(__dirname, 'mock');
 
 vows.describe('biz-mock').addBatch({
-    // 'Init config folder': {
-    //     topic: function() {
-    //         var configPath = path.join(__dirname, 'config'),
-    //             mockPath = path.join(__dirname, 'mock');
-    //         if(fs.existsSync(configPath)){
-    //             fs.rmdirSync(configPath);
-    //         }
-    //         if(fs.existsSync(mockPath)){
-    //             fs.rmdirSync(mockPath);
-    //         }
-    //         mock.initFolder(__dirname);
-
-    //         return 1;
-    //     },
-    //     'Copy <config> folder to current folder': {
-    //         topic: function() {
-    //             return fs.statSync('config');
-    //         },
-    //         '<config> folder exist': function(stats) {
-    //             assert.isTrue(stats.isDirectory());
-    //         }
-    //     }
-    // },
+    'Init folder': {
+        topic: function() {
+            if (fs.existsSync(configPath)) {
+                fse.removeSync(configPath);
+            }
+            if (fs.existsSync(mockPath)) {
+                fse.removeSync(mockPath);
+            }
+            mock.initFolder(__dirname);
+            return fs;
+        },
+        'Copy <config> and <mock> folder to current folder': function(fs) {
+            var configStats = fs.statSync('config'),
+                mockStats = fs.statSync(path.join(__dirname, 'mock'));
+            assert.isTrue(configStats.isDirectory() && mockStats.isDirectory());
+            // 删除测试用的文件夹
+            if (fs.existsSync(configPath)) {
+                fse.removeSync(configPath);
+            }
+            if (fs.existsSync(mockPath)) {
+                fse.removeSync(mockPath);
+            }
+        }
+    },
     'Start server and mock @ 8090': {
         topic: function() {
             mock.start();
