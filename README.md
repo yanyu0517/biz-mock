@@ -38,7 +38,7 @@ biz-mock首先需要初始化配置文件，以及mock静态文件目录
 
 向指定路径复制配置文件以及mock静态文件目录
 
-配置文件[mockConfig.json](#mockConfig配置文件)：
+配置文件[mockConfig.json](#mockConfig)：
 
     /config/mockConfig.json
 
@@ -72,7 +72,7 @@ mock静态文件目录：
 
 拦截ajax请求，并返回mock数据
 
-## mockConfig配置文件
+## mockConfig
 
 ### mockConfig.json:
 
