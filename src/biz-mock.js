@@ -24,8 +24,7 @@ var defaultOptions = {
     as: '.action',
     mockConfig: mockConfig,
     silent: false,
-    methods: ['post', 'get'],
-    port: 80
+    methods: ['post', 'get']
 };
 
 var logger = {
@@ -57,6 +56,13 @@ function Mock() {
 
 Mock.prototype.start = function(options) {
     this.options = extend(true, defaultOptions, options || {});
+    if(this.options.silent){
+        logger = {
+          info: function() {},
+          request: function() {}
+        };
+    }
+
     this._initRouter();
     this.hasStart = true;
 }
@@ -191,12 +197,11 @@ Mock.prototype._getTemplateData = function(type, url, req, res, cb) {
 
 Mock.prototype._getCookieData = function(type, url, req, res, cb) {
     var configs = this.options.mockConfig.cookie,
-        port = this.options.port,
         options = {
             method: req.method || 'post',
             form: req.body || '',
             url: configs.host + url + (this.options.as || ''),
-            port: port,
+            port: req.port,
             headers: {
                 'Cookie': configs.cookie,
             },

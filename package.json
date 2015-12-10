@@ -2,7 +2,7 @@
   "name": "biz-mock",
   "version": "0.0.1",
   "description": "mock center",
-  "main": "mock.js",
+  "main": "src/biz-mock.js",
   "scripts": {
     "test": "test"
   },
