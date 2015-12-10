@@ -13,9 +13,16 @@ var MockJs = require('mockjs'),
     thunkify = require('thunkify'),
     router = new director.http.Router();
 
+var mockConfig;
+try {
+    mockConfig = path.join(process.cwd(), '/config/mockConfig.json');
+} catch(e){
+    
+}
+
 var defaultOptions = {
     as: '.action',
-    mockConfig: require(path.join(process.cwd(), '/config/mockConfig.json')),
+    mockConfig: mockConfig,
     silent: false,
     methods: ['post', 'get'],
     port: 80
@@ -77,15 +84,16 @@ Mock.prototype._initRouter = function() {
     }
 };
 
-Mock.prototype.initFolder = function() {
-    var src = path.join(__dirname, '../config');
-    console.log('copy ' + src + ' to ' + process.cwd())
-        // 复制目录
-    fse.copySync(src, process.cwd() + '/config');
+Mock.prototype.initFolder = function(dest) {
+    var src = path.join(__dirname, '../config'),
+        destPath = dest || process.cwd();
+    // copy folder
+    fse.copySync(src, destPath + '/config');
+    console.log('copy ' + src + ' to ' + destPath + '/config')
     src = path.join(__dirname, '../mock');
-    console.log('copy ' + src + ' to ' + process.cwd() + '/mock');
-    // 复制目录
-    fse.copySync(src, process.cwd() + '/mock');
+    // copy folder
+    fse.copySync(src, destPath + '/mock');
+    console.log('copy ' + src + ' to ' + destPath + '/mock');
 }
 
 Mock.prototype.dispatch = function(req, res) {
