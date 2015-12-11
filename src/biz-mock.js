@@ -16,7 +16,7 @@ var MockJs = require('mockjs'),
 var mockConfig;
 try {
     mockConfig = require(path.join(process.cwd(), '/config/mockConfig.json'));
-} catch(e){
+} catch (e) {
 
 }
 
@@ -56,10 +56,10 @@ function Mock() {
 
 Mock.prototype.start = function(options) {
     this.options = extend(true, defaultOptions, options || {});
-    if(this.options.silent){
+    if (this.options.silent) {
         logger = {
-          info: function() {},
-          request: function() {}
+            info: function() {},
+            request: function() {}
         };
     }
 
@@ -77,14 +77,12 @@ Mock.prototype._initRouter = function() {
         for (var i = 0; i < suffix.length; i++) {
             var reg = '/(.*)' + suffix[i],
                 me = this;
-
-            function callback(url) {
-                if (mockConfig) {
-                    me._mockTo.call(me, url, this.req, this.res);
-                }
-            }
             for (var i = 0; i < this.options.methods.length; i++) {
-                router[this.options.methods[i]].call(router, new RegExp(reg), callback);
+                router[this.options.methods[i]].call(router, new RegExp(reg), function(url) {
+                    if (mockConfig) {
+                        me._mockTo.call(me, url, this.req, this.res);
+                    }
+                });
             };
         }
     }
