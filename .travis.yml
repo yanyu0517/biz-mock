@@ -5,8 +5,8 @@ node_js:
   - "4.1"
   - "4.2"
 before_script:
-  - "npm install -g jshint"
   - "npm install -g istanbul"
+  - "npm install -g jshint"
 script:
   - "jshint"
   - "npm test"
