@@ -1,5 +1,8 @@
 # biz-mock
 
+[![Build Status](https://travis-ci.org/yanyu0517/biz-mock.svg?branch=master)](https://travis-ci.org/yanyu0517/biz-mock)
+[![bitHound Overalll Score](https://www.bithound.io/github/yanyu0517/biz-mock/badges/score.svg)](https://www.bithound.io/github/yanyu0517/biz-mock)
+
 biz-mock支持通过json静态数据，随机模板数据，cookie原酸数据，生成模拟数据
 
 配合独立的server，能够减少前端开发对后端环境的依赖
