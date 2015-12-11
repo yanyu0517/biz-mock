@@ -11,4 +11,4 @@ script:
   - "jshint"
   - "npm test"
 after_script:
-  - cat ./node_modules/coveralls/bin/coveralls.js
+  - node ./node_modules/coveralls/bin/coveralls.js
