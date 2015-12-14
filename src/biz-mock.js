@@ -164,7 +164,7 @@ Mock.prototype._getJsonData = function(type, url, req, res, cb) {
             if (err) throw cb(err);
             var json = JSON.parse(data);
             if (me.options.mockConfig.json.wrap) {
-                if (json.enable) {
+                if (json.enabled) {
                     cb(null, JSON.stringify(json[json.value]));
                 } else {
                     cb(null);
