@@ -1,7 +1,13 @@
 # biz-mock
 
+[![NPM version](https://img.shields.io/npm/v/biz-mock.svg)](https://www.npmjs.com/package/biz-mock)
+[![NPM downloads total](https://img.shields.io/npm/dt/biz-mock.svg)](https://www.npmjs.com/package/biz-mock)
+[![NPM license](https://img.shields.io/npm/l/biz-mock.svg)](https://www.npmjs.com/package/biz-mock)
 [![Build Status](https://travis-ci.org/yanyu0517/biz-mock.svg?branch=master)](https://travis-ci.org/yanyu0517/biz-mock)
 [![bitHound Overalll Score](https://www.bithound.io/github/yanyu0517/biz-mock/badges/score.svg)](https://www.bithound.io/github/yanyu0517/biz-mock)
+[![Coverage Status](https://coveralls.io/repos/yanyu0517/biz-mock/badge.svg?branch=master&service=github)](https://coveralls.io/github/yanyu0517/biz-mock?branch=master)
+[![Dependency Status](https://david-dm.org/yanyu0517/biz-mock.svg)](https://david-dm.org/yanyu0517/biz-mock)
+[![devDependency Status](https://david-dm.org/yanyu0517/biz-mock/dev-status.svg)](https://david-dm.org/yanyu0517/biz-mock#info=devDependencies)
 
 biz-mock支持通过json静态数据，随机模板数据，cookie原酸数据，生成模拟数据
 

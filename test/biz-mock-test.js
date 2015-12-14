@@ -70,16 +70,10 @@ var a = vows.describe('biz-mock').addBatch({
             assert.equal(res.statusCode, 200);
         },
         'query http://127.0.0.1:8090/query/table.action, data should have a property name equal table': function(err, res, body) {
-            console.log(a.batches)
             assert.isTrue(JSON.parse(res.body).hasOwnProperty('table'));
         },
         'query http://127.0.0.1:8090/query/table.action, the property of table should be a array': function(err, res, body) {
             var body = JSON.parse(res.body);
-            console.log(a.batches)
-            assert.isTrue(body.table instanceof Array);
-            // setTimeout(3000, function(){
-            //     process.exit()
-            // })
         }
     },
     teardown: function(topic) {
