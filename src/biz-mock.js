@@ -24,7 +24,8 @@ var defaultOptions = {
     as: '.action',
     mockConfig: mockConfig,
     silent: false,
-    methods: ['post', 'get']
+    methods: ['post', 'get'],
+    proxy: ''
 };
 
 var logger = {
@@ -198,15 +199,16 @@ Mock.prototype._getCookieData = function(type, url, req, res, cb) {
         options = {
             method: req.method || 'post',
             form: req.body || '',
-            url: configs.host + url + (this.options.as || ''),
+            url: configs.host + req.url,
             port: req.port,
             headers: {
                 'Cookie': configs.cookie,
             },
             rejectUnauthorized: !!configs.rejectUnauthorized,
-            secureProtocol: configs.secureProtocol || ''
+            secureProtocol: configs.secureProtocol || '',
+            proxy: configs.proxy
         };
-    logger.info('Dispatch to ' + options.url.cyan);
+    logger.info('Dispatch to ' + (configs.host + req.url).cyan);
     request(options, function(error, res, body) {
         cb(error, body);
     });
@@ -214,9 +216,8 @@ Mock.prototype._getCookieData = function(type, url, req, res, cb) {
 
 Mock.prototype._getCustomData = function(type, url, req, res, cb) {
     try {
-        var mockSource = require(type),
-            action = url + (this.options.as || '');
-        mockSource.getData(action, req, res, cb);
+        var mockSource = require(type);
+        mockSource.getData(url, req, res, cb);
     } catch (e) {
         logger.info("Can't find mock source " + type);
     }
