@@ -1,6 +1,6 @@
 {
   "name": "biz-mock",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "mock center",
   "main": "src/biz-mock.js",
   "scripts": {

@@ -24,14 +24,13 @@ var defaultOptions = {
     as: '.action',
     mockConfig: mockConfig,
     silent: false,
-    methods: ['post', 'get'],
-    proxy: ''
+    methods: ['post', 'get']
 };
 
 var logger = {
     info: console.log,
     request: function(req, res, error) {
-        var date = utc ? new Date().toUTCString() : new Date();
+        var date = new Date();
         if (error) {
             logger.info(
                 '[%s] "%s %s" Error (%s): "%s"',
@@ -66,7 +65,7 @@ Mock.prototype.start = function(options) {
 
     this._initRouter();
     this.hasStart = true;
-}
+};
 
 //init router
 Mock.prototype._initRouter = function() {
@@ -78,13 +77,13 @@ Mock.prototype._initRouter = function() {
         for (var i = 0; i < suffix.length; i++) {
             var reg = '/(.*)' + suffix[i],
                 me = this;
-            for (var i = 0; i < this.options.methods.length; i++) {
-                router[this.options.methods[i]].call(router, new RegExp(reg), function(url) {
+            for (var j = 0; j < this.options.methods.length; j++) {
+                router[this.options.methods[j]].call(router, new RegExp(reg), function(url) {
                     if (mockConfig) {
                         me._mockTo.call(me, url, this.req, this.res);
                     }
                 });
-            };
+            }
         }
     }
 };
@@ -94,16 +93,16 @@ Mock.prototype.initFolder = function(dest) {
         destPath = dest || process.cwd();
     // copy folder
     fse.copySync(src, destPath + '/config');
-    console.log('copy ' + src + ' to ' + destPath + '/config')
+    console.log('copy ' + src + ' to ' + destPath + '/config');
     src = path.join(__dirname, '../mock');
     // copy folder
     fse.copySync(src, destPath + '/mock');
     console.log('copy ' + src + ' to ' + destPath + '/mock');
-}
+};
 
 Mock.prototype.dispatch = function(req, res) {
     if (!this.hasStart) {
-        logger.info('You first have to call mock.start()'.red)
+        logger.info('You first have to call mock.start()'.red);
     }
     return router.dispatch(req, res);
 };
@@ -206,7 +205,7 @@ Mock.prototype._getCookieData = function(type, url, req, res, cb) {
             },
             rejectUnauthorized: !!configs.rejectUnauthorized,
             secureProtocol: configs.secureProtocol || '',
-            proxy: configs.proxy
+            proxy: configs.proxy || ''
         };
     logger.info('Dispatch to ' + (configs.host + req.url).cyan);
     request(options, function(error, res, body) {

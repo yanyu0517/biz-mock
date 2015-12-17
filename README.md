@@ -142,13 +142,16 @@ cookie是通过在配置文件中拷贝cookie，实现免登陆直接请求数�
 
     "cookie": {
 	    "host": ,
-	    "rejectUnauthorized": ,
 	    "secureProtocol": ,
-	    "cookie": 
+	    "cookie": ,
+		"proxy":
     }
 
 - host：访问域名，支持http和https
-- reject
+- secureProtocol：SSL协议，根据安装的OpenSSL设置。比如SSLv3_method，即设置为SSL第三版。具体可参考[SSL_METHODS](https://www.openssl.org/docs/manmaster/ssl/ssl.html#DEALING_WITH_PROTOCOL_METHODS "SSL_METHODS")
+- cookie: cookie
+- proxy:代理
+- 
 
 
 json和template路径与请求路径一致，例：
@@ -163,13 +166,13 @@ template路径/mock/data/query/table.template
 
 mock数据源实现getData方法
 
-    exports.getData = function(action, req, res, cb){
+    exports.getData = function(url, req, res, cb){
     	return data
     }
 
 方法参数：
 
-- action：请求数据路径
+- url：http请求，注意，不带后缀
 - req: request
 - res: response
 - cb: biz-server采用co控制异步操作的流程，自定义数据源会被thunkify，cb是co的回调函数，`cb(error, data)`
