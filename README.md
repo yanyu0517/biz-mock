@@ -69,11 +69,13 @@ mock静态文件目录：
 
 - `as`:拦截ajax请求的后缀，默认是`'.action'`。可以拦截多种后缀的ajax，在`as`参数中多个后缀用`,`分隔
 
-- `mockConfig`:配置文件json对象，默认路径是`process.cwd(), '/config/mockConfig.json'`
+- `mockConfig`:配置文件json对象，默认路径是`options.root` + `/config/mockConfig.json`
 
 - `silent`:是否打印各种log，默认是`false`
 
 - `methods`:拦截ajax请求的method，默认是`['post', 'get']`
+
+- `root`:base路径，默认是`process.cwd()`
 
 ### dispatch()
 

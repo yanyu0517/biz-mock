@@ -13,18 +13,13 @@ var MockJs = require('mockjs'),
     thunkify = require('thunkify'),
     router = new director.http.Router();
 
-var mockConfig;
-try {
-    mockConfig = require(path.join(process.cwd(), '/config/mockConfig.json'));
-} catch (e) {
 
-}
 
 var defaultOptions = {
     as: '.action',
-    mockConfig: mockConfig,
     silent: false,
-    methods: ['post', 'get']
+    methods: ['post', 'get'],
+    root: process.cwd()
 };
 
 var logger = {
@@ -56,6 +51,11 @@ function Mock() {
 
 Mock.prototype.start = function(options) {
     this.options = extend(true, defaultOptions, options || {});
+    try {
+        this.options.mockConfig = require(path.join(this.options.root, '/config/mockConfig.json'));
+    } catch (e) {
+
+    }
     if (this.options.silent) {
         logger = {
             info: function() {},
@@ -90,7 +90,7 @@ Mock.prototype._initRouter = function() {
 
 Mock.prototype.initFolder = function(dest) {
     var src = path.join(__dirname, '../config'),
-        destPath = dest || process.cwd();
+        destPath = dest || this.options.root;
     // copy folder
     fse.copySync(src, destPath + '/config');
     console.log('copy ' + src + ' to ' + destPath + '/config');
@@ -156,7 +156,7 @@ Mock.prototype._getMockData = function(type) {
 
 
 Mock.prototype._getJsonData = function(type, url, req, res, cb) {
-    var pathStr = path.join(process.cwd(), this.options.mockConfig.json.path + url + (this.options.mockConfig.json.suffix || '.json'));
+    var pathStr = path.join(this.options.root, this.options.mockConfig.json.path + url + (this.options.mockConfig.json.suffix || '.json'));
     logger.info('Json data path is ' + pathStr.cyan);
     if (fs.existsSync(pathStr)) {
         var me = this;
@@ -180,7 +180,7 @@ Mock.prototype._getJsonData = function(type, url, req, res, cb) {
 };
 
 Mock.prototype._getTemplateData = function(type, url, req, res, cb) {
-    var pathStr = path.join(process.cwd(), this.options.mockConfig.template.path + url + '.template');
+    var pathStr = path.join(this.options.root, this.options.mockConfig.template.path + url + '.template');
     logger.info('Template data path is ' + pathStr.cyan);
     if (fs.existsSync(pathStr)) {
         fs.readFile(pathStr, 'utf-8', function(err, data) {
