@@ -51,10 +51,12 @@ function Mock() {
 
 Mock.prototype.start = function(options) {
     this.options = extend(true, defaultOptions, options || {});
-    try {
-        this.options.mockConfig = require(path.join(this.options.root, '/config/mockConfig.json'));
-    } catch (e) {
-
+    if(!this.options.mockConfig){
+        try {
+            this.options.mockConfig = require(path.join(this.options.root, '/config/mockConfig.json'));
+        } catch (e) {
+            logger.info("Can't find mock config file " + mockPath + ", mock feature isn't available");
+        }
     }
     if (this.options.silent) {
         logger = {
@@ -90,7 +92,7 @@ Mock.prototype._initRouter = function() {
 
 Mock.prototype.initFolder = function(dest) {
     var src = path.join(__dirname, '../config'),
-        destPath = dest || this.options.root;
+        destPath = dest || process.cwd();
     // copy folder
     fse.copySync(src, destPath + '/config');
     console.log('copy ' + src + ' to ' + destPath + '/config');
