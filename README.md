@@ -13,7 +13,7 @@ biz-mock支持通过json静态数据，随机模板数据，cookie原酸数据�
 
 配合独立的server，能够减少前端开发对后端环境的依赖
 
-[![NPM Stat][npm-stat-image]][npm-stat-url]
+[![NPM Stat](https://nodei.co/npm/biz-mock.png?downloads=true)](https://nodei.co/npm/biz-mock)
 
 ## 功能
 
