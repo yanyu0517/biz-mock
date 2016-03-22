@@ -164,7 +164,14 @@ Mock.prototype._getJsonData = function(type, url, req, res, cb) {
         var me = this;
         fs.readFile(pathStr, 'utf-8', function(err, data) {
             if (err) throw cb(err);
-            var json = JSON.parse(data);
+            var json;
+            try {
+                json = JSON.parse(data);
+            } catch(e) {
+                logger.info('Parse json failed!')
+                cb(null);
+                return;
+            }
             if (me.options.mockConfig.json.wrap) {
                 if (json.enabled) {
                     cb(null, JSON.stringify(json[json.value]));
