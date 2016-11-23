@@ -1,6 +1,6 @@
 {
   "name": "biz-mock",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "mock center",
   "main": "src/biz-mock.js",
   "scripts": {
@@ -32,5 +32,8 @@
     "thunkify": "^2.1.2",
     "underscore": "^1.8.3",
     "vows": "^0.8.1"
+  },
+  "devDependencies": {
+    "istanbul": "^0.4.5"
   }
 }

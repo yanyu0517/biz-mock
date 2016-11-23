@@ -55,7 +55,7 @@ Mock.prototype.start = function(options) {
         try {
             this.options.mockConfig = require(path.join(this.options.root, '/config/mockConfig.json'));
         } catch (e) {
-            logger.info("Can't find mock config file " + mockPath + ", mock feature isn't available");
+            logger.info("Can't find mock config file, mock feature isn't available");
         }
     }
     if (this.options.silent) {
@@ -64,7 +64,6 @@ Mock.prototype.start = function(options) {
             request: function() {}
         };
     }
-
     this._initRouter();
     this.hasStart = true;
 };
@@ -74,7 +73,7 @@ Mock.prototype._initRouter = function() {
     var as = this.options.as,
         mockConfig = this.options.mockConfig;
     //router action
-    if (typeof as === 'string') {
+    if (typeof as === 'string' && as != '') {
         var suffix = as.split(',');
         for (var i = 0; i < suffix.length; i++) {
             var reg = '/(.*)' + suffix[i],
@@ -86,6 +85,15 @@ Mock.prototype._initRouter = function() {
                     }
                 });
             }
+        }
+    } else {
+        me = this;
+        for (var j = 0; j < this.options.methods.length; j++) {
+            router[this.options.methods[j]].call(router, new RegExp("/(.*)", "g"), function(url) {
+                if (mockConfig) {
+                    me._mockTo.call(me, url, this.req, this.res);
+                }
+            });
         }
     }
 };
