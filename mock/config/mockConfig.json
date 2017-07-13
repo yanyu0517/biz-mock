@@ -1,5 +1,5 @@
 {
-    "dataSource": [ "template", "json","cookie"],
+    "dataSource": ["json", "template", "cookie"],
     "json": {
         "path": "/mock/data/",
         "wrap": false
