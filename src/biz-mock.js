@@ -55,24 +55,40 @@ function Mock() {
 
 Mock.prototype.start = function(options) {
     this.options = extend(true, defaultOptions, options || {});
-    if (!this.options.mockConfig) {
+
+    var mockConfig = this.options.mockConfig,
+        root = this.options.root;
+
+    if (!mockConfig) {
         try {
-            var oldConfig = path.join(this.options.root, CONFIG_PATH_OLD, CONFIG_FILE_NAME);
-            var newConfig = path.join(this.options.root, CONFIG_PATH_NEW, CONFIG_FILE_NAME);
+            var oldConfig = path.join(root, CONFIG_PATH_OLD, CONFIG_FILE_NAME);
+            var newConfig = path.join(root, CONFIG_PATH_NEW, CONFIG_FILE_NAME);
             // check new config path first, if not exists, try oldpath
             if (fs.existsSync(newConfig)) {
                 this.options.mockConfig = require(newConfig);
-                currentConfigPath = path.join(this.options.root, CONFIG_PATH_NEW);
+                currentConfigPath = path.join(root, CONFIG_PATH_NEW);
                 logger.info('read config file from /mock/config/mockConfig.json success'.green);
             } else {
                 this.options.mockConfig = require(oldConfig);
-                currentConfigPath = path.join(this.options.root, CONFIG_PATH_OLD);
+                currentConfigPath = path.join(root, CONFIG_PATH_OLD);
                 logger.info("[depreciate] the mockConfig.json file is already move into /mock/config/ in latest version, it will nolonger read /config/mockConfig.json by default when you not sepcify an config value.".yellow);
             }
         } catch (e) {
             logger.info("Can't find mock config file, mock feature isn't available");
         }
+    }else if(typeof mockConfig === 'string'){
+        //may pass a string path
+        if(!path.isAbsolute(mockConfig)){
+            mockConfig = path.join(root, mockConfig);
+        }
+
+        try{
+            this.options.mockConfig = require(mockConfig);
+        }catch(e){
+            logger.info(`Can't find mock config file from ${mockConfig}, mock feature isn't available`);
+        }
     }
+
     if (this.options.silent) {
         logger = {
             info: function() {},
@@ -123,7 +139,8 @@ Mock.prototype._initRouter = function() {
 };
 
 Mock.prototype.initFolder = function(dest) {
-    var src = path.join(__dirname, '../mock');
+    var src = path.join(__dirname, '../mock'),
+        destPath = dest || process.cwd();
 
     // copy mock folder
     fse.copySync(src, destPath + '/mock');
@@ -298,6 +315,5 @@ function watchConfig() {
     });
     logger.info('biz-mock config livereload is running!');
 }
-
 
 module.exports = mock;

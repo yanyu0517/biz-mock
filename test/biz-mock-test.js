@@ -11,20 +11,24 @@ var path = require('path'),
     httpServer = require('http-server');
 
 var root = path.join(__dirname),
-    // configPath = path.join(__dirname, 'config'),
-    mockPath = path.join(__dirname, 'mock');
+    mockPath = path.join(__dirname, 'mock'),
+    server;
 
-mock.start();
+function start(config, serverPort){
+    mock.start(config);
 
-var server = httpServer.createServer({
-    root: root,
-    before: [
-        function(req, res) {
-            mock.dispatch(req, res);
-        }
-    ]
-});
-server.listen(8090);
+    server = httpServer.createServer({
+        root: root,
+        before: [
+            function(req, res) {
+                mock.dispatch(req, res);
+            }
+        ]
+    });
+    server.listen(serverPort || 8090);
+}
+
+start();
 
 var a = vows.describe('biz-mock').addBatch({
     'Init folder': {
