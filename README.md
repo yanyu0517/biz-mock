@@ -51,7 +51,7 @@ biz-mock首先需要初始化配置文件，以及mock静态文件目录
 
 配置文件[mockConfig.json](#mockConfig)：
 
-    /config/mockConfig.json
+    /mock/config/mockConfig.json
 
 mock静态文件目录：
 
@@ -69,9 +69,9 @@ mock静态文件目录：
 
 `options`
 
-- `as`:拦截ajax请求的后缀，默认是`'.action'`。可以拦截多种后缀的ajax，在`as`参数中多个后缀用`,`分隔
+- `as`:拦截ajax请求的后缀，默认是`'.action'`。可以拦截多种后缀的ajax，在`as`参数中多个后缀用`,`分隔。如请求不带.*后缀，可以配置成空字符串。
 
-- `mockConfig`:配置文件json对象，默认路径是`options.root` + `/config/mockConfig.json`
+- `mockConfig`:配置文件json对象，默认路径是`options.root` + `/mock/config/mockConfig.json`
 
 - `silent`:是否打印各种log，默认是`false`
 
@@ -185,4 +185,16 @@ mock数据源实现getData方法
 
 - json数据
 
-另外需要在config/mockConfig.json的dataSource注册mock数据源
+另外需要在/mock/config/mockConfig.json的dataSource注册mock数据源
+
+## 更新日志
+
+### 0.0.5 
+- 修复suffix设置为''时存在的问题
+- 修复suffix逻辑中正则表达式匹配不准确的问题
+- 修复cookie模式下当request header中content-type为application/json时出错的情况
+- 优化/config/mockConfig.json文件的目录结构，将其移入/mock/config/mockConfig.json
+- 修改initFolder逻辑，不再生成/config目录
+- 初始化时，当未设置config文件路径时，优先使用/mock/config/mockConfig.json, 同时如果新的不存在则兼容老的路径，并给出dperaciate提示。建议升级后进行迁移，简化工程目录
+- 新增配置项的热更新，避免切换数据源时需要重新启动应用
+- 代码格式化

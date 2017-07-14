@@ -11,9 +11,14 @@ var MockJs = require('mockjs'),
     director = require('director'),
     co = require('co'),
     thunkify = require('thunkify'),
+    Url = require('url'),
+    watch = require('watch'),
     router = new director.http.Router();
 
-
+var CONFIG_FILE_NAME = 'mockConfig.json';
+var CONFIG_PATH_OLD = '/config';
+var CONFIG_PATH_NEW = '/mock/config';
+var currentConfigPath;
 
 var defaultOptions = {
     as: '.action',
@@ -21,6 +26,7 @@ var defaultOptions = {
     methods: ['post', 'get'],
     root: process.cwd()
 };
+
 
 var logger = {
     info: console.log,
@@ -30,14 +36,12 @@ var logger = {
             logger.info(
                 '[%s] "%s %s" Error (%s): "%s"',
                 date, req.method.red, req.url.red,
-                error.status.toString().red, error.message.red
-            );
+                error.status.toString().red, error.message.red);
         } else {
             logger.info(
                 '[%s] "%s %s" "%s"',
                 date, req.method.cyan, req.url.cyan,
-                req.headers['user-agent']
-            );
+                req.headers['user-agent']);
         }
     }
 };
@@ -51,13 +55,40 @@ function Mock() {
 
 Mock.prototype.start = function(options) {
     this.options = extend(true, defaultOptions, options || {});
-    if(!this.options.mockConfig){
+
+    var mockConfig = this.options.mockConfig,
+        root = this.options.root;
+
+    if (!mockConfig) {
         try {
-            this.options.mockConfig = require(path.join(this.options.root, '/config/mockConfig.json'));
+            var oldConfig = path.join(root, CONFIG_PATH_OLD, CONFIG_FILE_NAME);
+            var newConfig = path.join(root, CONFIG_PATH_NEW, CONFIG_FILE_NAME);
+            // check new config path first, if not exists, try oldpath
+            if (fs.existsSync(newConfig)) {
+                this.options.mockConfig = require(newConfig);
+                currentConfigPath = path.join(root, CONFIG_PATH_NEW);
+                logger.info('read config file from /mock/config/mockConfig.json success'.green);
+            } else {
+                this.options.mockConfig = require(oldConfig);
+                currentConfigPath = path.join(root, CONFIG_PATH_OLD);
+                logger.info("[depreciate] the mockConfig.json file is already move into /mock/config/ in latest version, it will nolonger read /config/mockConfig.json by default when you not sepcify an config value.".yellow);
+            }
         } catch (e) {
             logger.info("Can't find mock config file, mock feature isn't available");
         }
+    }else if(typeof mockConfig === 'string'){
+        //may pass a string path
+        if(!path.isAbsolute(mockConfig)){
+            mockConfig = path.join(root, mockConfig);
+        }
+
+        try{
+            this.options.mockConfig = require(mockConfig);
+        }catch(e){
+            logger.info(`Can't find mock config file from ${mockConfig}, mock feature isn't available`);
+        }
     }
+
     if (this.options.silent) {
         logger = {
             info: function() {},
@@ -66,46 +97,52 @@ Mock.prototype.start = function(options) {
     }
     this._initRouter();
     this.hasStart = true;
+    watchConfig();
 };
 
 //init router
 Mock.prototype._initRouter = function() {
     var as = this.options.as,
+        methods = this.options.methods,
+        me = this,
+        suffixes = [],
         mockConfig = this.options.mockConfig;
-    //router action
-    if (typeof as === 'string' && as != '') {
-        var suffix = as.split(',');
-        for (var i = 0; i < suffix.length; i++) {
-            var reg = '/(.*)' + suffix[i],
-                me = this;
-            for (var j = 0; j < this.options.methods.length; j++) {
-                router[this.options.methods[j]].call(router, new RegExp(reg), function(url) {
-                    if (mockConfig) {
-                        me._mockTo.call(me, url, this.req, this.res);
-                    }
-                });
-            }
-        }
+
+    //deal with suffix
+    if (typeof as === 'string' && as !== '') {
+        //support multiple suffix. eg: .action,.do
+        suffixes = as.split(',');
+
+        //fullfill with dot, support write suffix without dot prefix.
+        suffixes = suffixes.map(function(suffix) {
+            return suffix.replace(/^\.?/, '');
+        });
     } else {
-        me = this;
-        for (var j = 0; j < this.options.methods.length; j++) {
-            router[this.options.methods[j]].call(router, new RegExp("/(.*)", "g"), function(url) {
-                if (mockConfig) {
-                    me._mockTo.call(me, url, this.req, this.res);
-                }
+        suffixes.push('');
+    }
+
+
+    for (var i = 0; i < suffixes.length; i++) {
+        var suffix = suffixes[i],
+            noSuffix = !! !suffix,
+            reg = noSuffix ?
+                new RegExp('/(.*)') :
+                new RegExp('/(.*)\\.' + suffix);
+
+        for (var j = 0; j < methods.length; j++) {
+            router[methods[j]].call(router, reg, function(url) {
+                mockConfig && me._mockTo.call(me, url, this.req, this.res);
             });
         }
     }
+
 };
 
 Mock.prototype.initFolder = function(dest) {
-    var src = path.join(__dirname, '../config'),
+    var src = path.join(__dirname, '../mock'),
         destPath = dest || process.cwd();
-    // copy folder
-    fse.copySync(src, destPath + '/config');
-    console.log('copy ' + src + ' to ' + destPath + '/config');
-    src = path.join(__dirname, '../mock');
-    // copy folder
+
+    // copy mock folder
     fse.copySync(src, destPath + '/mock');
     console.log('copy ' + src + ' to ' + destPath + '/mock');
 };
@@ -119,7 +156,7 @@ Mock.prototype.dispatch = function(req, res) {
 
 Mock.prototype._mockTo = function(url, req, res) {
     var me = this;
-    co(function*() {
+    co(function * () {
         for (var i = 0; i < me.options.mockConfig.dataSource.length; i++) {
             var method = me._getMockData(me.options.mockConfig.dataSource[i]);
             var data = yield method.call(me, me.options.mockConfig.dataSource[i], url, req, res);
@@ -127,6 +164,11 @@ Mock.prototype._mockTo = function(url, req, res) {
                 res.writeHead(200, {
                     'Content-Type': 'application/json'
                 });
+
+                if (typeof data === 'object') {
+                    data = JSON.stringify(data);
+                }
+
                 res.end(data);
                 logger.request(req, res);
                 break;
@@ -138,7 +180,8 @@ Mock.prototype._mockTo = function(url, req, res) {
             }
         }
         logger.info('Datasource is ' + me.options.mockConfig.dataSource[i].green);
-    }).catch(function(err) {
+    }).
+    catch (function(err) {
         res.writeHead(404);
         res.end(err.stack);
         logger.request(req, res, err);
@@ -175,7 +218,7 @@ Mock.prototype._getJsonData = function(type, url, req, res, cb) {
             var json;
             try {
                 json = JSON.parse(data);
-            } catch(e) {
+            } catch (e) {
                 logger.info('Parse json failed!')
                 cb(null);
                 return;
@@ -212,19 +255,30 @@ Mock.prototype._getTemplateData = function(type, url, req, res, cb) {
 
 Mock.prototype._getCookieData = function(type, url, req, res, cb) {
     var configs = this.options.mockConfig.cookie,
+        headers = extend(true, {}, {
+            cookie: configs.cookie
+        }),
+        url = Url.resolve(configs.host, req.url),
         options = {
             method: req.method || 'post',
-            form: req.body || '',
-            url: configs.host + req.url,
+            url: url,
             port: req.port,
-            headers: {
-                'Cookie': configs.cookie,
-            },
-            rejectUnauthorized: !!configs.rejectUnauthorized,
+            headers: headers,
+            rejectUnauthorized: !! configs.rejectUnauthorized,
             secureProtocol: configs.secureProtocol || '',
             proxy: configs.proxy || ''
         };
-    logger.info('Dispatch to ' + (configs.host + req.url).cyan);
+
+    if (req.headers['content-type'] === 'application/json') { //support json input
+        options.json = true;
+        options.body = req.body;
+    } else { //default to application/x-www-form-encoded
+        options.form = req.body;
+    }
+
+    logger.info('Dispatch to ' + url.cyan);
+    logger.info('request headers:', JSON.stringify(headers));
+
     request(options, function(error, res, body) {
         cb(error, body);
     });
@@ -240,5 +294,26 @@ Mock.prototype._getCustomData = function(type, url, req, res, cb) {
 };
 
 var mock = new Mock();
+
+ // hmr
+function watchConfig() {
+    watch.createMonitor(currentConfigPath, function(monitor) {
+        monitor.on("changed", function(f, curr, prev) {
+            // Handle file changes
+            logger.info('mock config file is changed, execute update')
+            try {
+                var configPath = path.join(currentConfigPath, CONFIG_FILE_NAME);
+                //remove config module cache ,next time require this module will reload
+                delete require.cache[configPath];
+
+                mock.options.mockConfig = require(configPath);
+                logger.info('mockConfig file hot reload success!');
+            } catch (e) {
+                logger.info('mockConfig file hot reload failed');
+            }
+        });
+    });
+    logger.info('biz-mock config livereload is running!');
+}
 
 module.exports = mock;
