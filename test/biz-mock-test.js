@@ -11,27 +11,28 @@ var path = require('path'),
     httpServer = require('http-server');
 
 var root = path.join(__dirname),
-    configPath = path.join(__dirname, 'config'),
-    mockPath = path.join(__dirname, 'mock');
+    mockPath = path.join(__dirname, 'mock'),
+    server;
 
-mock.start();
+function start(config, serverPort){
+    mock.start(config);
 
-var server = httpServer.createServer({
-    root: root,
-    before: [
-        function(req, res) {
-            mock.dispatch(req, res);
-        }
-    ]
-});
-server.listen(8090);
+    server = httpServer.createServer({
+        root: root,
+        before: [
+            function(req, res) {
+                mock.dispatch(req, res);
+            }
+        ]
+    });
+    server.listen(serverPort || 8090);
+}
+
+start();
 
 var a = vows.describe('biz-mock').addBatch({
     'Init folder': {
         topic: function() {
-            if (fs.existsSync(configPath)) {
-                fse.removeSync(configPath);
-            }
             if (fs.existsSync(mockPath)) {
                 fse.removeSync(mockPath);
             }
@@ -39,13 +40,10 @@ var a = vows.describe('biz-mock').addBatch({
             return fs;
         },
         'Copy <config> and <mock> folder to current folder': function(fs) {
-            var configStats = fs.statSync('config'),
-                mockStats = fs.statSync(path.join(__dirname, 'mock'));
-            assert.isTrue(configStats.isDirectory() && mockStats.isDirectory());
+            var mockStats = fs.statSync(path.join(__dirname, 'mock'));
+            assert.isTrue( mockStats.isDirectory());
             // 删除测试用的文件夹
-            if (fs.existsSync(configPath)) {
-                fse.removeSync(configPath);
-            }
+            
             if (fs.existsSync(mockPath)) {
                 fse.removeSync(mockPath);
             }
