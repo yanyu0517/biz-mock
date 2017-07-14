@@ -75,6 +75,7 @@ var a = vows.describe('biz-mock').addBatch({
         }
     },
     teardown: function(topic) {
+        console.log('server close')
         server.close();
     }
 }).export(module)
