@@ -8,12 +8,12 @@ var path = require('path'),
     mock = require('../src/biz-mock'),
     request = require('request'),
     _ = require('underscore'),
+    http = require('http'),
     httpServer = require('http-server');
 
 var root = path.join(__dirname),
     mockPath = path.join(__dirname, 'mock'),
-    server;
-
+    server, mockserver;
 function start(config, serverPort){
     mock.start(config);
 
@@ -26,6 +26,23 @@ function start(config, serverPort){
         ]
     });
     server.listen(serverPort || 8090);
+
+    //起一个假的mock服务器
+    mockserver = http.createServer(function(req, res) {
+        //用于测试mockServer的接口名
+        if (req.url === '/query/mockserver.action') {
+            res.writeHead(200, {'Content-Type': 'application/json'});  
+            var data = {  
+                "name":"nodejs",  
+                "value":"mockserver"  
+            };  
+            res.end(JSON.stringify(data));
+        } else {
+            res.writeHead(404);
+            res.end();
+        } 
+    }).listen(8080);
+
 }
 
 start();
@@ -74,8 +91,24 @@ var a = vows.describe('biz-mock').addBatch({
             var body = JSON.parse(res.body);
         }
     },
+    'Get mock data from mockserver': {
+        topic: function() {
+            request('http://127.0.0.1:8090/query/mockserver.action', this.callback);
+        },
+        'query http://127.0.0.1:8090/query/mockserver.action, status code should be 200': function(err, res, body) {
+            assert.equal(res.statusCode, 200);
+        },
+        'query http://127.0.0.1:8090/query/mockserver.action, data should have a property name equal value': function(err, res, body) {
+            assert.isTrue(JSON.parse(res.body).hasOwnProperty('value'));
+        },
+        'query http://127.0.0.1:8090/query/mockserver.action, the property of name should be "nodejs"': function(err, res, body) {
+            var body = JSON.parse(res.body);
+            assert.equal(body.name, 'nodejs');
+        }
+    },
     teardown: function(topic) {
         console.log('server close')
         server.close();
+        mockserver.close();
     }
 }).export(module)

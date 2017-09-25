@@ -1,10 +1,10 @@
 {
   "name": "biz-mock",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "mock center",
   "main": "src/biz-mock.js",
   "scripts": {
-    "test": "istanbul cover -v --print both -- vows --spec test/biz-mock-test.js"
+    "test": "istanbul cover -v --print both -- ./node_modules/vows/bin/vows --spec test/biz-mock-test.js"
   },
   "repository": {
     "type": "git",

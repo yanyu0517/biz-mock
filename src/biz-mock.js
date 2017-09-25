@@ -46,11 +46,31 @@ var logger = {
     }
 };
 
+//将参数对象转为字符串
+function serialize(obj) {
+    if (typeof obj === 'string') {
+        return obj;
+    }
+
+    var result = [];
+    var enc = encodeURIComponent;
+
+    for (var key of Object.keys(obj)) {
+        // console.log(key, '---',obj[key])
+        if (obj[key]) {
+            result.push([enc(key), enc(obj[key])].join('='));
+        }
+
+    }
+    return result.join('&');
+}
+
 function Mock() {
     this.thunkGetJsonData = thunkify(this._getJsonData);
     this.thunkGetTemplateData = thunkify(this._getTemplateData);
     this.thunkGetCookieData = thunkify(this._getCookieData);
     this.thunkGetCustomData = thunkify(this._getCustomData);
+    this.thunkGetMockserverData = thunkify(this._getMockserverData);
 }
 
 Mock.prototype.start = function(options) {
@@ -121,14 +141,12 @@ Mock.prototype._initRouter = function() {
         suffixes.push('');
     }
 
-
     for (var i = 0; i < suffixes.length; i++) {
         var suffix = suffixes[i],
             noSuffix = !! !suffix,
             reg = noSuffix ?
                 new RegExp('/(.*)') :
                 new RegExp('/(.*)\\.' + suffix);
-
         for (var j = 0; j < methods.length; j++) {
             router[methods[j]].call(router, reg, function(url) {
                 mockConfig && me._mockTo.call(me, url, this.req, this.res);
@@ -199,6 +217,9 @@ Mock.prototype._getMockData = function(type) {
             break;
         case 'cookie':
             method = this.thunkGetCookieData;
+            break;
+        case 'mockserver':
+            method = this.thunkGetMockserverData;
             break;
         default:
             method = this.thunkGetCustomData;
@@ -281,6 +302,46 @@ Mock.prototype._getCookieData = function(type, url, req, res, cb) {
 
     request(options, function(error, res, body) {
         cb(error, body);
+    });
+};
+
+Mock.prototype._getMockserverData = function(type, url, req, res, cb) {
+    var configs = this.options.mockConfig.mockserver;
+    var mockserverParams = configs.mockserverParams;
+    //mockServer需要的参数
+    var paramsString = serialize(mockserverParams);
+    var connector = req.url.indexOf('?') > '-1' ? '&' : '?';
+    var reqUrl = Url.resolve(configs.host, req.url);
+    
+    //存在参数时才需要添加后缀
+    if (paramsString) {
+        reqUrl = reqUrl + connector + paramsString;
+    }
+    var options = {
+        method: req.method || 'post',
+        url: reqUrl,
+        port: req.port,
+        rejectUnauthorized: !!configs.rejectUnauthorized,
+        secureProtocol: configs.secureProtocol || '',
+        proxy: configs.proxy || ''
+    };
+    if (req.headers['content-type'] === 'application/json') { //support json input
+        options.json = true;
+        options.body = req.body;
+    } else { //default to application/x-www-form-encoded
+        options.form = req.body;
+    }
+
+    logger.info('Dispatch to ' + url.cyan);
+    request(options, function(error, res, body) {
+        //响应码为200是视为服务正常响应了，不然视为异常，使用其他mock源的数据
+        console.log(res.statusCode);
+        console.log('--------------------------')
+        if (res.statusCode == '200') {
+            cb(error, body)
+        } else {
+            cb(error);
+        }
     });
 };
 

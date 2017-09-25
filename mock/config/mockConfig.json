@@ -1,5 +1,5 @@
 {
-    "dataSource": ["json", "template", "cookie"],
+    "dataSource": ["mockserver", "json", "template", "cookie"],
     "json": {
         "path": "/mock/data/",
         "wrap": false
@@ -13,5 +13,14 @@
     },
     "template": {
         "path": "/mock/template/"
+    },
+    "mockserver": {
+        "host": "http://localhost:8080/",
+        "mockserverParams": {
+
+        },
+        "rejectUnauthorized": false,
+        "secureProtocol": "SSLv3_method",
+        "proxy": ""
     }
 }
