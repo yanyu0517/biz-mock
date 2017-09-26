@@ -18,7 +18,7 @@ biz-mock支持通过json静态数据，随机模板数据，cookie原酸数据�
 ## 功能
 
 - 拦截ajax请求
-- 三种mock数据源，json，模板和cookie
+- 三种mock数据源，json，模板和server
 - 支持自定义拦截器
 
 ## 安装
@@ -90,27 +90,33 @@ mock静态文件目录：
 ### mockConfig.json:
 
 	{
-    "dataSource": ["cookie", "template", "json"],
+    "dataSource": ["server", "json", "template"],
     "json": {
         "path": "/mock/data/",
         "wrap": false
     },
-    "cookie": {
-        "host": "http://zhitou.xuri.p4p.sogou.com/",
+    "server": {
+        "host": "http://localhost:8080/",
+        "serverParams": {
+            "index": 1
+        },
+        "statusCode": [200],
         "rejectUnauthorized": false,
         "secureProtocol": "SSLv3_method",
-        "cookie": ""
+        "cookie": "",
+        "proxy": ""
     },
     "template": {
         "path": "/mock/template/"
     }
 }
 
+
 ### mock数据源
 
-`dataSource`是mock数据源的集合，目前有原生提供三种数据源cookie，template和json
+`dataSource`是mock数据源的集合，目前有原生提供四种数据源cookie，template和json以及mockserver
 
-数据源在集合中的排序规定了数据源的优先级，索引越小，优先级越高。如上面例子中，会首先查找cookie数据源，如果cookie数据源没有数据，那么会查找template数据源，仍然没有，继续查找json数据源。三种数据源都没有的话，会返回404
+数据源在集合中的排序规定了数据源的优先级，索引越小，优先级越高。如上面例子中，会首先查找cookie数据源，如果cookie数据源没有数据，接着是mockserver数据源，如果还没有，那么会查找template数据源，仍然没有，继续查找json数据源。四种数据源都没有的话，会返回404
 
 1.json
 
@@ -138,20 +144,27 @@ template是通过数据模板生成模拟数据
 
 生成器选用[http://mockjs.com/](http://mockjs.com/ "Mock.js")
 
-3.cookie
+3.server
 
-cookie是通过在配置文件中拷贝cookie，实现免登陆直接请求数据
+server是通过在配置文件中配置host，cookie，额外参数serverParams等，实现从其他服务中获取请求数据的功能
 
 配置文件如下：
 
-    "cookie": {
-	    "host": ,
-	    "secureProtocol": ,
-	    "cookie": ,
-		"proxy":
+    "server": {
+        "host": "http://localhost:8080/",
+        "serverParams": {
+            "index": 1
+        },
+        "statusCode": [200],
+        "rejectUnauthorized": false,
+        "secureProtocol": "SSLv3_method",
+        "cookie": "",
+        "proxy": ""
     }
 
 - host：访问域名，支持http和https
+- serverParams： 可能额外需要的参数
+- statusCode: 配置需要返回结果的响应码，默认是200，如果服务的响应码不在此列表中，则从其他mock源获取数据
 - secureProtocol：SSL协议，根据安装的OpenSSL设置。比如SSLv3_method，即设置为SSL第三版。具体可参考[SSL_METHODS](https://www.openssl.org/docs/manmaster/ssl/ssl.html#DEALING_WITH_PROTOCOL_METHODS "SSL_METHODS")
 - cookie: cookie
 - proxy:代理
@@ -165,6 +178,7 @@ json和template路径与请求路径一致，例：
 json路径/mock/data/query/table.json
 
 template路径/mock/data/query/table.template
+
 
 ### 如何自定义mock数据源
 
@@ -198,3 +212,8 @@ mock数据源实现getData方法
 - 初始化时，当未设置config文件路径时，优先使用/mock/config/mockConfig.json, 同时如果新的不存在则兼容老的路径，并给出dperaciate提示。建议升级后进行迁移，简化工程目录
 - 新增配置项的热更新，避免切换数据源时需要重新启动应用
 - 代码格式化
+
+### 0.1.1
+- 把cookie mock源升级为server源，通过在配置文件中配置host，cookie，额外参数serverParams等，实现从其他服务中获取请求数据的功能
+- server源可以用列表方式配置多种配置，会依次尝试直至获取结果
+- 更改package.json的test脚本，使windows环境也能启动

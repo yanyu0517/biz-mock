@@ -1,17 +1,32 @@
 {
-    "dataSource": ["json", "template", "cookie"],
+    "dataSource": ["server", "json", "template"],
     "json": {
         "path": "/mock/data/",
         "wrap": false
     },
-    "cookie": {
-        "host": "",
+    "server": [{
+        "host": "http://localhost:8080/",
+        "serverParams": {
+            "index": 1
+        },
+        "statusCode": [200],
         "rejectUnauthorized": false,
         "secureProtocol": "SSLv3_method",
         "cookie": "",
         "proxy": ""
-    },
+    }, {
+        "host": "http://localhost:8081/",
+        "serverParams": {
+            "index": 2
+        },
+        "statusCode": [200],
+        "rejectUnauthorized": false,
+        "secureProtocol": "SSLv3_method",
+        "cookie": "",
+        "proxy": ""
+    }],
     "template": {
         "path": "/mock/template/"
     }
+
 }

@@ -46,10 +46,20 @@ var logger = {
     }
 };
 
+//将参数对象转为字符串
+function serialize(obj) {
+    if (typeof obj === 'string') {
+        return obj;
+    }
+    return Object.keys(obj).map(function(key) {
+        return [encodeURIComponent(key), encodeURIComponent(obj[key])].join('=')
+    }).join('&');
+}
+
 function Mock() {
     this.thunkGetJsonData = thunkify(this._getJsonData);
     this.thunkGetTemplateData = thunkify(this._getTemplateData);
-    this.thunkGetCookieData = thunkify(this._getCookieData);
+    this.thunkGetServerData = thunkify(this._getMultiServerData);
     this.thunkGetCustomData = thunkify(this._getCustomData);
 }
 
@@ -121,14 +131,12 @@ Mock.prototype._initRouter = function() {
         suffixes.push('');
     }
 
-
     for (var i = 0; i < suffixes.length; i++) {
         var suffix = suffixes[i],
             noSuffix = !! !suffix,
             reg = noSuffix ?
                 new RegExp('/(.*)') :
                 new RegExp('/(.*)\\.' + suffix);
-
         for (var j = 0; j < methods.length; j++) {
             router[methods[j]].call(router, reg, function(url) {
                 mockConfig && me._mockTo.call(me, url, this.req, this.res);
@@ -197,8 +205,8 @@ Mock.prototype._getMockData = function(type) {
         case 'template':
             method = this.thunkGetTemplateData;
             break;
-        case 'cookie':
-            method = this.thunkGetCookieData;
+        case 'server':
+            method = this.thunkGetServerData;
             break;
         default:
             method = this.thunkGetCustomData;
@@ -253,36 +261,70 @@ Mock.prototype._getTemplateData = function(type, url, req, res, cb) {
     }
 };
 
-Mock.prototype._getCookieData = function(type, url, req, res, cb) {
-    var configs = this.options.mockConfig.cookie,
-        headers = extend(true, {}, {
-            cookie: configs.cookie
-        }),
-        url = Url.resolve(configs.host, req.url),
-        options = {
-            method: req.method || 'post',
-            url: url,
-            port: req.port,
-            headers: headers,
-            rejectUnauthorized: !! configs.rejectUnauthorized,
-            secureProtocol: configs.secureProtocol || '',
-            proxy: configs.proxy || ''
-        };
+Mock.prototype._getMultiServerData = function (type, url, req, res, cb) {
+    //判断server的配置是数组还是对象，统一按数组依次处理
+    var serverConfig = this.options.mockConfig[type];
+    if (Object.prototype.toString.call(serverConfig)!=='[object Array]') {
+        serverConfig = [this.options.mockConfig[type]];
+    }
+    var me = this;
+    co(function*() {
+        for (var i = 0; i < serverConfig.length; i++) {
+            //避免虽然依次请求，但是响应时间不同带来的顺序错位，所以采用同步写法
+            var data = yield thunkify(me._getServerData).call(me, serverConfig[i], url, req, res);
+            if (typeof data !== 'undefined') {
+                cb(null, data);
+            }
+        }
+        cb(null);
+    }).catch (function(err) {
+        cb(err);
+    });
+}
 
+Mock.prototype._getServerData = function(configs, url, req, res, cb) {
+    var statusCodeList = configs.statusCode || [200],
+        headers = extend(true, {}, {
+            cookie: configs.cookie || ''
+        }),
+        //server可能需要的参数
+        serverParams = configs.serverParams || {},
+        //将mockserver的配置参数转成字符串
+        paramsString = serialize(serverParams),
+        //判断连接符是&还是?
+        connector = req.url.indexOf('?') > '-1' ? '&' : '?',
+        url = Url.resolve(configs.host, req.url);
+    //mockserver拼接url后的参数
+    if (paramsString) {
+        url += connector + paramsString;
+    }
+    //请求的option
+    var options = {
+        method: req.method || 'post',
+        url: url,
+        port: req.port,
+        headers: headers,
+        rejectUnauthorized: !!configs.rejectUnauthorized,
+        secureProtocol: configs.secureProtocol || '',
+        proxy: configs.proxy || ''
+    };
     if (req.headers['content-type'] === 'application/json') { //support json input
         options.json = true;
         options.body = req.body;
     } else { //default to application/x-www-form-encoded
         options.form = req.body;
     }
-
     logger.info('Dispatch to ' + url.cyan);
     logger.info('request headers:', JSON.stringify(headers));
-
     request(options, function(error, res, body) {
-        cb(error, body);
+        //若响应码在配置的列表中，则返回结果，否则使用其他mock源的数据
+        if (statusCodeList.indexOf(res.statusCode) > '-1') {
+            cb(error, body)
+        } else {
+            cb(error);
+        }
     });
-};
+}
 
 Mock.prototype._getCustomData = function(type, url, req, res, cb) {
     try {
