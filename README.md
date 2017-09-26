@@ -18,7 +18,7 @@ biz-mock支持通过json静态数据，随机模板数据，cookie原酸数据�
 ## 功能
 
 - 拦截ajax请求
-- 四种mock数据源，json，模板和cookie以及mockserver
+- 三种mock数据源，json，模板和server
 - 支持自定义拦截器
 
 ## 安装
@@ -90,29 +90,27 @@ mock静态文件目录：
 ### mockConfig.json:
 
 	{
-    "dataSource": ["cookie", "mockserver", "template", "json"],
+    "dataSource": ["server", "json", "template"],
     "json": {
         "path": "/mock/data/",
         "wrap": false
     },
-    "cookie": {
-        "host": "http://zhitou.xuri.p4p.sogou.com/",
+    "server": {
+        "host": "http://localhost:8080/",
+        "serverParams": {
+            "index": 1
+        },
+        "statusCode": [200],
         "rejectUnauthorized": false,
         "secureProtocol": "SSLv3_method",
-        "cookie": ""
+        "cookie": "",
+        "proxy": ""
     },
     "template": {
         "path": "/mock/template/"
-    },
-    "mockserver": {
-        "host": "http://localhost:8080/",
-        "mockserverParams": {
-        },
-        "rejectUnauthorized": false,
-        "secureProtocol": "SSLv3_method",
-        "proxy": ""
     }
 }
+
 
 ### mock数据源
 
@@ -146,20 +144,27 @@ template是通过数据模板生成模拟数据
 
 生成器选用[http://mockjs.com/](http://mockjs.com/ "Mock.js")
 
-3.cookie
+3.server
 
-cookie是通过在配置文件中拷贝cookie，实现免登陆直接请求数据
+server是通过在配置文件中配置host，cookie，额外参数serverParams等，实现从其他服务中获取请求数据的功能
 
 配置文件如下：
 
-    "cookie": {
-	    "host": ,
-	    "secureProtocol": ,
-	    "cookie": ,
-		"proxy":
+    "server": {
+        "host": "http://localhost:8080/",
+        "serverParams": {
+            "index": 1
+        },
+        "statusCode": [200],
+        "rejectUnauthorized": false,
+        "secureProtocol": "SSLv3_method",
+        "cookie": "",
+        "proxy": ""
     }
 
 - host：访问域名，支持http和https
+- serverParams： 可能额外需要的参数
+- statusCode: 配置需要返回结果的响应码，默认是200，如果服务的响应码不在此列表中，则从其他mock源获取数据
 - secureProtocol：SSL协议，根据安装的OpenSSL设置。比如SSLv3_method，即设置为SSL第三版。具体可参考[SSL_METHODS](https://www.openssl.org/docs/manmaster/ssl/ssl.html#DEALING_WITH_PROTOCOL_METHODS "SSL_METHODS")
 - cookie: cookie
 - proxy:代理
@@ -174,30 +179,6 @@ json路径/mock/data/query/table.json
 
 template路径/mock/data/query/table.template
 
-4. mockserver
-
-mockserver是通过配置mock服务地址以及mock服务需要的额外请求参数来获得mock服务器提供的响应结果
-
-配置文件如下:
-
-```
-    "mockserver": {
-        "host": "http://localhost:8080/",
-        "mockserverParams": {
-
-        },
-        "rejectUnauthorized": false,
-        "secureProtocol": "SSLv3_method",
-        "proxy": ""
-    }
-```
-
-- host：mock域名
-- secureProtocol：SSL协议，根据安装的OpenSSL设置。比如SSLv3_method，即设置为SSL第三版。具体可参考[SSL_METHODS](https://www.openssl.org/docs/manmaster/ssl/ssl.html#DEALING_WITH_PROTOCOL_METHODS "SSL_METHODS")
-- proxy:代理
-- mockserverParams： mock服务器可能需要的额外参数，拼接于请求url后
-
-为了使mockserver在没有相应响应时不影响继续使用其他mock源，特约定，在响应状态码为200时才使用mockserver的响应数据，不然使用其他mock源
 
 ### 如何自定义mock数据源
 
@@ -233,5 +214,6 @@ mock数据源实现getData方法
 - 代码格式化
 
 ### 0.1.1
-- 增加新的mock源：mockserver
+- 把cookie mock源升级为server源，通过在配置文件中配置host，cookie，额外参数serverParams等，实现从其他服务中获取请求数据的功能
+- server源可以用列表方式配置多种配置，会依次尝试直至获取结果
 - 更改package.json的test脚本，使windows环境也能启动

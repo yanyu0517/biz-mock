@@ -59,9 +59,8 @@ function serialize(obj) {
 function Mock() {
     this.thunkGetJsonData = thunkify(this._getJsonData);
     this.thunkGetTemplateData = thunkify(this._getTemplateData);
-    this.thunkGetCookieData = thunkify(this._getCookieData);
+    this.thunkGetServerData = thunkify(this._getMultiServerData);
     this.thunkGetCustomData = thunkify(this._getCustomData);
-    this.thunkGetMockserverData = thunkify(this._getMockserverData);
 }
 
 Mock.prototype.start = function(options) {
@@ -206,11 +205,8 @@ Mock.prototype._getMockData = function(type) {
         case 'template':
             method = this.thunkGetTemplateData;
             break;
-        case 'cookie':
-            method = this.thunkGetCookieData;
-            break;
-        case 'mockserver':
-            method = this.thunkGetMockserverData;
+        case 'server':
+            method = this.thunkGetServerData;
             break;
         default:
             method = this.thunkGetCustomData;
@@ -265,15 +261,36 @@ Mock.prototype._getTemplateData = function(type, url, req, res, cb) {
     }
 };
 
-Mock.prototype._getRequestOption = function(type, url, req) {
-    var configs = this.options.mockConfig[type],
+Mock.prototype._getMultiServerData = function (type, url, req, res, cb) {
+    //判断server的配置是数组还是对象，统一按数组依次处理
+    var serverConfig = this.options.mockConfig[type];
+    if (Object.prototype.toString.call(serverConfig)!=='[object Array]') {
+        serverConfig = [this.options.mockConfig[type]];
+    }
+    var me = this;
+    co(function*() {
+        for (var i = 0; i < serverConfig.length; i++) {
+            //避免虽然依次请求，但是响应时间不同带来的顺序错位，所以采用同步写法
+            var data = yield thunkify(me._getServerData).call(me, serverConfig[i], url, req, res);
+            if (typeof data !== 'undefined') {
+                cb(null, data);
+            }
+        }
+        cb(null);
+    }).catch (function(err) {
+        cb(err);
+    });
+}
+
+Mock.prototype._getServerData = function(configs, url, req, res, cb) {
+    var statusCodeList = configs.statusCode || [200],
         headers = extend(true, {}, {
             cookie: configs.cookie || ''
         }),
-        //mockServer需要的参数
-        mockserverParams = configs.mockserverParams || {},
+        //server可能需要的参数
+        serverParams = configs.serverParams || {},
         //将mockserver的配置参数转成字符串
-        paramsString = serialize(mockserverParams),
+        paramsString = serialize(serverParams),
         //判断连接符是&还是?
         connector = req.url.indexOf('?') > '-1' ? '&' : '?',
         url = Url.resolve(configs.host, req.url);
@@ -299,27 +316,16 @@ Mock.prototype._getRequestOption = function(type, url, req) {
     }
     logger.info('Dispatch to ' + url.cyan);
     logger.info('request headers:', JSON.stringify(headers));
-    return options;
-}
-
-Mock.prototype._getCookieData = function(type, url, req, res, cb) {
-    var options = this._getRequestOption(type, url, req);
     request(options, function(error, res, body) {
-        cb(error, body);
-    });
-};
-
-Mock.prototype._getMockserverData = function(type, url, req, res, cb) {
-    var options = this._getRequestOption(type, url, req);
-    request(options, function(error, res, body) {
-        //响应码为200是视为服务正常响应了，不然视为异常，使用其他mock源的数据
-        if (res.statusCode == '200') {
+        //若响应码在配置的列表中，则返回结果，否则使用其他mock源的数据
+        if (statusCodeList.indexOf(res.statusCode) > '-1') {
             cb(error, body)
         } else {
             cb(error);
         }
     });
-};
+}
+
 Mock.prototype._getCustomData = function(type, url, req, res, cb) {
     try {
         var mockSource = require(type);
