@@ -30,7 +30,7 @@ function start(config, serverPort){
     //起一个假的mock服务器
     mockserver = http.createServer(function(req, res) {
         //用于测试mockServer的接口名
-        if (req.url === '/query/mockserver.action') {
+        if (req.url.indexOf('/query/mockserver.action') > -1) {
             res.writeHead(200, {'Content-Type': 'application/json'});  
             var data = {  
                 "name":"nodejs",  
