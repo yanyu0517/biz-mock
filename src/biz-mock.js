@@ -46,11 +46,22 @@ var logger = {
     }
 };
 
+//将参数对象转为字符串
+function serialize(obj) {
+    if (typeof obj === 'string') {
+        return obj;
+    }
+    return Object.keys(obj).map(function(key) {
+        return [encodeURIComponent(key), encodeURIComponent(obj[key])].join('=')
+    }).join('&');
+}
+
 function Mock() {
     this.thunkGetJsonData = thunkify(this._getJsonData);
     this.thunkGetTemplateData = thunkify(this._getTemplateData);
     this.thunkGetCookieData = thunkify(this._getCookieData);
     this.thunkGetCustomData = thunkify(this._getCustomData);
+    this.thunkGetMockserverData = thunkify(this._getMockserverData);
 }
 
 Mock.prototype.start = function(options) {
@@ -121,14 +132,12 @@ Mock.prototype._initRouter = function() {
         suffixes.push('');
     }
 
-
     for (var i = 0; i < suffixes.length; i++) {
         var suffix = suffixes[i],
             noSuffix = !! !suffix,
             reg = noSuffix ?
                 new RegExp('/(.*)') :
                 new RegExp('/(.*)\\.' + suffix);
-
         for (var j = 0; j < methods.length; j++) {
             router[methods[j]].call(router, reg, function(url) {
                 mockConfig && me._mockTo.call(me, url, this.req, this.res);
@@ -200,6 +209,9 @@ Mock.prototype._getMockData = function(type) {
         case 'cookie':
             method = this.thunkGetCookieData;
             break;
+        case 'mockserver':
+            method = this.thunkGetMockserverData;
+            break;
         default:
             method = this.thunkGetCustomData;
             break;
@@ -253,37 +265,61 @@ Mock.prototype._getTemplateData = function(type, url, req, res, cb) {
     }
 };
 
-Mock.prototype._getCookieData = function(type, url, req, res, cb) {
-    var configs = this.options.mockConfig.cookie,
+Mock.prototype._getRequestOption = function(type, url, req) {
+    var configs = this.options.mockConfig[type],
         headers = extend(true, {}, {
-            cookie: configs.cookie
+            cookie: configs.cookie || ''
         }),
-        url = Url.resolve(configs.host, req.url),
-        options = {
-            method: req.method || 'post',
-            url: url,
-            port: req.port,
-            headers: headers,
-            rejectUnauthorized: !! configs.rejectUnauthorized,
-            secureProtocol: configs.secureProtocol || '',
-            proxy: configs.proxy || ''
-        };
-
+        //mockServer需要的参数
+        mockserverParams = configs.mockserverParams || {},
+        //将mockserver的配置参数转成字符串
+        paramsString = serialize(mockserverParams),
+        //判断连接符是&还是?
+        connector = req.url.indexOf('?') > '-1' ? '&' : '?',
+        url = Url.resolve(configs.host, req.url);
+    //mockserver拼接url后的参数
+    if (paramsString) {
+        url += connector + paramsString;
+    }
+    //请求的option
+    var options = {
+        method: req.method || 'post',
+        url: url,
+        port: req.port,
+        headers: headers,
+        rejectUnauthorized: !!configs.rejectUnauthorized,
+        secureProtocol: configs.secureProtocol || '',
+        proxy: configs.proxy || ''
+    };
     if (req.headers['content-type'] === 'application/json') { //support json input
         options.json = true;
         options.body = req.body;
     } else { //default to application/x-www-form-encoded
         options.form = req.body;
     }
-
     logger.info('Dispatch to ' + url.cyan);
     logger.info('request headers:', JSON.stringify(headers));
+    return options;
+}
 
+Mock.prototype._getCookieData = function(type, url, req, res, cb) {
+    var options = this._getRequestOption(type, url, req);
     request(options, function(error, res, body) {
         cb(error, body);
     });
 };
 
+Mock.prototype._getMockserverData = function(type, url, req, res, cb) {
+    var options = this._getRequestOption(type, url, req);
+    request(options, function(error, res, body) {
+        //响应码为200是视为服务正常响应了，不然视为异常，使用其他mock源的数据
+        if (res.statusCode == '200') {
+            cb(error, body)
+        } else {
+            cb(error);
+        }
+    });
+};
 Mock.prototype._getCustomData = function(type, url, req, res, cb) {
     try {
         var mockSource = require(type);
