@@ -13,6 +13,7 @@ var MockJs = require('mockjs'),
     thunkify = require('thunkify'),
     Url = require('url'),
     watch = require('watch'),
+    Utils = require('./Utils'),
     router = new director.http.Router();
 
 var CONFIG_FILE_NAME = 'mockConfig.json';
@@ -46,15 +47,8 @@ var logger = {
     }
 };
 
-//将参数对象转为字符串
-function serialize(obj) {
-    if (typeof obj === 'string') {
-        return obj;
-    }
-    return Object.keys(obj).map(function(key) {
-        return [encodeURIComponent(key), encodeURIComponent(obj[key])].join('=')
-    }).join('&');
-}
+var serialize = Utils.serialize;
+var concatUrl = Utils.concatUrl;
 
 function Mock() {
     this.thunkGetJsonData = thunkify(this._getJsonData);
@@ -293,7 +287,8 @@ Mock.prototype._getServerData = function(configs, url, req, res, cb) {
         paramsString = serialize(serverParams),
         //判断连接符是&还是?
         connector = req.url.indexOf('?') > '-1' ? '&' : '?',
-        url = Url.resolve(configs.host, req.url);
+        //server的host可能域名+router，使用Url.resolve会丢失router，所以改为拼接
+        url = concatUrl(configs.host, req.url);
     //mockserver拼接url后的参数
     if (paramsString) {
         url += connector + paramsString;

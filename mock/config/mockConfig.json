@@ -5,7 +5,7 @@
         "wrap": false
     },
     "server": [{
-        "host": "http://localhost:8080/",
+        "host": "http://localhost:8080/mock",
         "serverParams": {
             "index": 1
         },

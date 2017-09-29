@@ -9,11 +9,14 @@ var path = require('path'),
     request = require('request'),
     _ = require('underscore'),
     http = require('http'),
+    concatUrl = require('../src/Utils').concatUrl,
     httpServer = require('http-server');
 
 var root = path.join(__dirname),
     mockPath = path.join(__dirname, 'mock'),
     server, mockserver, mockserverTwo;
+
+
 function start(config, serverPort){
     mock.start(config);
 
@@ -126,6 +129,23 @@ var a = vows.describe('biz-mock').addBatch({
             var body = JSON.parse(res.body);
             assert.equal(body.from, 'server1');
         },
+    },
+    'Test url concat': {
+        'both has /': function() {
+            var a = 'http://localhost/mock/';
+            var b = '/test.action';
+            assert.equal(concatUrl(a, b), 'http://localhost/mock/test.action');
+        },
+        'neither has /': function () {
+            var a = 'http://localhost/mock';
+            var b = 'test.action';
+            assert.equal(concatUrl(a, b), 'http://localhost/mock/test.action');
+        },
+        'has one /': function () {
+            var a = 'http://localhost/mock';
+            var b = '/test.action';
+            assert.equal(concatUrl(a, b), 'http://localhost/mock/test.action');
+        }
     },
     teardown: function(topic) {
         console.log('server close')
