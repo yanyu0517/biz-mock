@@ -313,7 +313,8 @@ Mock.prototype._getServerData = function(configs, url, req, res, cb) {
     logger.info('request headers:', JSON.stringify(headers));
     request(options, function(error, res, body) {
         //若响应码在配置的列表中，则返回结果，否则使用其他mock源的数据
-        if (statusCodeList.indexOf(res.statusCode) > '-1') {
+        var statusCode = res ? res.statusCode : null;
+        if (statusCodeList.indexOf(statusCode) > '-1') {
             cb(error, body)
         } else {
             cb(error);
